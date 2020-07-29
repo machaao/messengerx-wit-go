@@ -25,6 +25,13 @@ var witAiToken string = os.Getenv("WitApiToken")
 func main() {
 	port := getPort()
 
+	if witAiToken == "" {
+		log.Fatalln("Wit API Token not initialised.")
+	}
+	if machaaoAPIToken == "" {
+		log.Fatalln("Machaao API Token not initialised.")
+	}
+
 	//API handler function
 	http.HandleFunc("/machaao_hook", messageHandler)
 
