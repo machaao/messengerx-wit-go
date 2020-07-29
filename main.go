@@ -1,7 +1,6 @@
 package main
 
 import (
-	"strings"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -9,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"machaao-go/extras"
 
@@ -16,8 +16,84 @@ import (
 	witai "github.com/wit-ai/wit-go"
 )
 
+//Get MachaaoApiToken from https://portal.messengerx.io
 var machaaoAPIToken string = os.Getenv("MachaaoApiToken")
+
+//Get WitApiToken from https://wit.ai
 var witAiToken string = os.Getenv("WitApiToken")
+
+func main() {
+	port := getPort()
+
+	//API handler function
+	http.HandleFunc("/machaao_hook", messageHandler)
+
+	//Go http server
+	log.Println("[-] Listening on...", port)
+	if err := http.ListenAndServe(port, nil); err != nil {
+		log.Fatal(err)
+	}
+
+}
+
+//Set PORT as env var or leave it to use 4747
+func getPort() string {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "4747"
+		log.Println("[-] No PORT environment variable detected. Setting to ", port)
+	}
+	return ":" + port
+}
+
+//Webhook messege handler
+func messageHandler(w http.ResponseWriter, r *http.Request) {
+
+	if r.Method != "POST" {
+		http.Error(w, "Method is not supported.", http.StatusNotFound)
+		return
+	}
+
+	//This function reads the request Body and saves to body as byte.
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		log.Printf("Error reading body: %v", err)
+		return
+	}
+
+	//converts bytes to string
+	var bodyData string = string(body)
+
+	//incoming JWT Token
+	var tokenString string = bodyData[8:(len(bodyData) - 2)]
+
+	claims := jwt.MapClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(machaaoAPIToken), nil
+	})
+
+	_ = token
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	//captures message_data object from the JWT body.
+	messageData := claims["sub"].(map[string]interface{})["messaging"].([]interface{})[0].(map[string]interface{})["message_data"]
+	messageText := messageData.(map[string]interface{})["text"].(string)
+
+	log.Println(messageData)
+	log.Println(messageText)
+
+	log.Println(r.Header["User_id"])
+
+	if messageText == "hi" {
+		quickReply(r.Header["User_id"], messageText, machaaoAPIToken)
+	} else {
+		simpleReply(r.Header["User_id"], messageText, machaaoAPIToken)
+	}
+}
 
 func getJokeTagUsingWitAI(message string) string {
 	client := witai.NewClient(witAiToken)
@@ -156,72 +232,6 @@ func simpleReply(userID []string, message string, apiToken string) {
 	fmt.Println("response Status:", resp.Status)
 	bodyf, _ := ioutil.ReadAll(resp.Body)
 	fmt.Println("response Body:", string(bodyf))
-}
-
-func messageHandler(w http.ResponseWriter, r *http.Request) {
-
-	if r.Method != "POST" {
-		http.Error(w, "Method is not supported.", http.StatusNotFound)
-		return
-	}
-
-	body, err := ioutil.ReadAll(r.Body)
-
-	if err != nil {
-		log.Printf("Error reading body: %v", err)
-		return
-	}
-
-	var bodyData string = string(body)
-	var tokenString string = bodyData[8:(len(bodyData) - 2)]
-
-	claims := jwt.MapClaims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte(machaaoAPIToken), nil
-	})
-
-	_ = token
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	messageData := claims["sub"].(map[string]interface{})["messaging"].([]interface{})[0].(map[string]interface{})["message_data"]
-	messageText := messageData.(map[string]interface{})["text"].(string)
-
-	log.Println(messageData)
-	log.Println(messageText)
-
-	log.Println(r.Header["User_id"])
-
-	if messageText == "hi" {
-		quickReply(r.Header["User_id"], messageText, machaaoAPIToken)
-	} else {
-		simpleReply(r.Header["User_id"], messageText, machaaoAPIToken)
-	}
-}
-
-func main() {
-	port := getPort()
-	http.HandleFunc("/machaao_hook", messageHandler)
-
-	log.Println("[-] Listening on...", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
-		log.Fatal(err)
-	}
-
-	// fmt.Println(machaaoAPIToken)
-	// fmt.Println(witAiToken)
-
-}
-
-func getPort() string {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "4747"
-		log.Println("[-] No PORT environment variable detected. Setting to ", port)
-	}
-	return ":" + port
 }
 
 func quickReply(userID []string, message string, apiToken string) {
