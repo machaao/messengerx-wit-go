@@ -2,9 +2,6 @@ package main
 
 import (
 	"strings"
-
-	// "bufio"
-
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -17,13 +14,9 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	witai "github.com/wit-ai/wit-go"
-	// "os"
-	// witai "github.com/wit-ai/wit-go"
 )
 
 var machaaoAPIToken string = os.Getenv("MachaaoApiToken")
-
-//WitAiToken Get it from https://wit.ai
 var witAiToken string = os.Getenv("WitApiToken")
 
 func getJokeTagUsingWitAI(message string) string {
