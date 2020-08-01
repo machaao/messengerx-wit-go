@@ -20,12 +20,12 @@ import (
 var machaaoAPIToken string = os.Getenv("MachaaoApiToken")
 
 //Get WitApiToken from https://wit.ai
-var witAiToken string = os.Getenv("WitApiToken")
+var witApiToken string = os.Getenv("WitApiToken")
 
 func main() {
 	port := getPort()
 
-	if witAiToken == "" {
+	if witApiToken == "" {
 		log.Fatalln("Wit API Token not initialised.")
 	}
 	if machaaoAPIToken == "" {
@@ -103,7 +103,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getJokeTagUsingWitAI(message string) string {
-	client := witai.NewClient(witAiToken)
+	client := witai.NewClient(witApiToken)
 	// Use client.SetHTTPClient() to set custom http.Client
 
 	msg, _ := client.Parse(&witai.MessageRequest{
